@@ -104,8 +104,6 @@ if (!towns || towns.length === 0) {
 // ---------------------------------------------------------
 // Pathfinding
 // ---------------------------------------------------------
-var result = [];
-
 /**
  *
  * @param {{id: number, name: string, altname: string, area: string, region: string, location: {x: number, y: number}}} town
@@ -115,9 +113,23 @@ function getTownPaths(town) {
   const paths = [];
 
   // Se já existe um arquivo de paths para essa cidade, carrega ele e retorna
-  if (fs.existsSync(pathsystem.join(__dirname, `paths_${season}/${town.name}_${town.id}.json`))) {
-    const existingPaths = require(pathsystem.join(__dirname, `paths_${season}/${town.name}_${town.id}.json`));
-    console.log(`Loaded ${existingPaths.length} existing paths for town ${town.name} (${town.id})`);
+  if (
+    fs.existsSync(
+      pathsystem.join(
+        __dirname,
+        `paths_${season}/${town.name}_${town.id}.json`,
+      ),
+    )
+  ) {
+    const existingPaths = require(
+      pathsystem.join(
+        __dirname,
+        `paths_${season}/${town.name}_${town.id}.json`,
+      ),
+    );
+    console.log(
+      `Loaded ${existingPaths.length} existing paths for town ${town.name} (${town.id})`,
+    );
     return existingPaths;
   }
 
@@ -243,28 +255,13 @@ towns.forEach((town, index) => {
 
   paths = paths.filter((path) => path && path.path.length > 0);
 
-  // TODO
-  result.concat(paths);
+  if (!fs.existsSync(pathsystem.join(__dirname, `paths_${season}`)))
+    fs.mkdirSync(pathsystem.join(__dirname, `paths_${season}`));
 
-  if (debug) {
-    if (!fs.existsSync(pathsystem.join(__dirname, `paths_${season}`)))
-      fs.mkdirSync(pathsystem.join(__dirname, `paths_${season}`));
-
-    const debugOutputFile = pathsystem.join(
-      __dirname,
-      `paths_${season}/${town.name}_${town.id}.json`,
-    );
-    fs.writeFileSync(debugOutputFile, JSON.stringify(paths, null, 2));
-    console.log(`Saved debug paths to ${debugOutputFile}`);
-  }
+  const outputFile = pathsystem.join(
+    __dirname,
+    `paths_${season}/${town.name}_${town.id}.json`,
+  );
+  fs.writeFileSync(outputFile, JSON.stringify(paths, null, 2));
+  console.log(`Saved paths to ${outputFile}`);
 });
-
-// ---------------------------------------------------------
-// Salva resultado em arquivo
-// ---------------------------------------------------------
-
-const outputFile = pathsystem.join(__dirname, `paths_${season}.json`);
-
-fs.writeFileSync(outputFile, JSON.stringify(result, null, 2));
-
-console.log(`Saved paths to ${outputFile}`);
