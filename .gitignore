@@ -1,5 +1,7 @@
 areas_s7/
 paths_s7/
-areas_s7.zip
 node_modules/
+
+areas_s7.zip
 merged_paths_s7.json
+merged_simplified_paths_s7.json
