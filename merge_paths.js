@@ -24,14 +24,31 @@ function mergePaths() {
     return;
   }
 
+  var pathsCount = 0;
+
   for (const file of files) {
     const filePath = pathsystem.join(pathsDir, file);
     const paths = require(filePath);
+
+    if (process.argv.includes("--debug"))
+      console.log(
+        `--------------- Loaded ${paths.length} paths from ${file} ------------------------`,
+      );
+
     for (const p of paths) {
+      pathsCount++;
+
       // Check if the path already exists in mergedPaths (two way)
-      const exists =
-        existingPaths.has(`${p.from.id},${p.to.id}`) ||
-        existingPaths.has(`${p.to.id},${p.from.id}`);
+      const exists = existingPaths.has(
+        `${p.from.id},${p.to.id},${p.isWaterPath}`,
+      );
+
+      if (process.argv.includes("--debug"))
+        console.log(
+          `Checking path from ${p.from.id} to ${p.to.id} (isWaterPath: ${p.isWaterPath ? true : false}): ${
+            exists ? "exists" : "does not exist"
+          }`,
+        );
 
       if (!exists) {
         // remove excess data to save in the merged file
@@ -62,10 +79,8 @@ function mergePaths() {
             console.log(`New length: ${p.path.length}`);
         }
 
-        if (process.argv.includes("--debug")) console.log(p.path[1]);
-
         mergedPaths.push(p);
-        existingPaths.add(`${p.from},${p.to}`);
+        existingPaths.add(`${p.from},${p.to},${p.isWaterPath}`);
 
         if (process.argv.includes("--debug"))
           console.log(`Added path from ${p.from} to ${p.to}`);
@@ -74,7 +89,7 @@ function mergePaths() {
   }
 
   if (process.argv.includes("--debug"))
-    console.log(`Total existing paths: ${existingPaths.size}`);
+    console.log(`Total paths: ${pathsCount}`);
 
   return mergedPaths;
 }
