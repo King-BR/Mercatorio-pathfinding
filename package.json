@@ -22,7 +22,10 @@
   "scripts": {
     "start": "node --max-old-space-size=16384 index.js",
     "test": "node --max-old-space-size=16384 index.js --debug",
-    "merge": "node --max-old-space-size=16384 merge_paths.js"
+    "merge": "node --max-old-space-size=16384 merge_paths.js",
+    "merge_debug": "node --max-old-space-size=16384 merge_paths.js --debug",
+    "merge_simplify": "node --max-old-space-size=16384 merge_paths.js --simplify",
+    "merge_simplify_debug": "node --max-old-space-size=16384 merge_paths.js --simplify --debug"
   },
   "dependencies": {
     "fs": "^0.0.1-security",
