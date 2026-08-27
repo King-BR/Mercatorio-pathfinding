@@ -76,9 +76,7 @@ function mergePaths() {
 
       p.path = p.path.map((step) => {
         return [step.x, step.y, step.moveCost].concat(
-          step.type
-            ? [step.type, step.ferryId, step.landingId]
-            : [],
+          step.type ? [step.type, step.ferryId, step.landingId] : [],
         );
       });
 
