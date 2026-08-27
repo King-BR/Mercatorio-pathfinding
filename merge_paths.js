@@ -35,6 +35,9 @@ function mergePaths() {
       );
 
     for (const p of paths) {
+      // add path ID to use in the interactive map for getting full data from backend
+      p.id = pathsCount;
+
       pathsCount++;
 
       if (process.argv.includes("--debug"))
@@ -56,16 +59,24 @@ function mergePaths() {
         delete step.data;
         delete step.area;
         delete step.moneyCost;
-        delete step.moveCost;
-        if (step.type == "water") delete step.type;
+        if (step.type == "water" || step.type == "land") delete step.type;
+      });
+
+      p.path = p.path.map((step) => {
+        return [step.x, step.y, step.moveCost].concat(
+          step.type ? [step.type] : [],
+        );
       });
 
       if (process.argv.includes("--simplify")) {
-        if (process.argv.includes("--debug"))
+        if (process.argv.includes("--debug")) {
           console.log(
             `Simplifying path from ${p.from} to ${p.to}. Original length: ${p.path.length}`,
           );
+        }
+
         p.path = simplifyPath(p.path);
+
         if (process.argv.includes("--debug"))
           console.log(`New length: ${p.path.length}`);
       }
@@ -88,9 +99,9 @@ function simplifyPath(path) {
     return path;
   }
 
-  var firstStep = [path[0].x, path[0].y];
+  var firstStep = [path[0][0], path[0][1]];
 
-  if (path[0].type) firstStep.push(path[0].type);
+  if (path[0][3]) firstStep.push(path[0][3]);
 
   const result = [firstStep];
 
@@ -100,13 +111,13 @@ function simplifyPath(path) {
     const previous = path[i - 1];
     const current = path[i];
 
-    const dx = Math.sign(current.x - previous.x);
-    const dy = Math.sign(current.y - previous.y);
+    const dx = Math.sign(current[0] - previous[0]);
+    const dy = Math.sign(current[1] - previous[1]);
 
     const direction = `${dx},${dy}`;
 
     // Type changed
-    const typeChanged = current.type !== previous.type;
+    const typeChanged = current[3] !== previous[3];
 
     // Direction changed (not the first step)
     const directionChanged =
@@ -114,7 +125,7 @@ function simplifyPath(path) {
 
     if (typeChanged || directionChanged) {
       result.push(
-        [previous.x, previous.y].concat(previous.type ? [previous.type] : []),
+        [previous[0], previous[1]].concat(previous[3] ? [previous[3]] : []),
       );
     }
 
@@ -124,7 +135,7 @@ function simplifyPath(path) {
   // Always include the last step
   const lastStep = path[path.length - 1];
   result.push(
-    [lastStep.x, lastStep.y].concat(lastStep.type ? [lastStep.type] : []),
+    [lastStep[0], lastStep[1]].concat(lastStep[3] ? [lastStep[3]] : []),
   );
 
   return result;
@@ -148,7 +159,7 @@ if (process.argv.includes("--debug")) {
   );
 
   debugPaths.push(mergedPaths.find((p) => p.isWaterPath));
-  debugPaths.push(mergedPaths.find((p) => !p.isWaterPath));
+  debugPaths.push(mergedPaths.find((p) => p.isWaterPath == undefined));
   debugPaths.push(mergedPaths.find((p) => p.totalMoneyCost > 0));
 
   fs.writeFileSync(debugOutputFilePath, JSON.stringify(debugPaths, null, 2));
