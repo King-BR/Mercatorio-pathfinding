@@ -226,11 +226,15 @@ class Pathfinder {
         // --------------------------------------------
 
         this.ferryMap.get(forwardKey).push({
-          ferryId: ferry.id,
+          ferryId: ferry.ferryId,
 
-          ferryName: ferry.name,
+          townId: ferry.id,
+
+          townName: ferry.name,
 
           landingIndex: i,
+
+          landingId: landing.id,
 
           from: {
             x: fromX,
@@ -258,11 +262,15 @@ class Pathfinder {
         // --------------------------------------------
 
         this.ferryMap.get(backwardKey).push({
-          ferryId: ferry.id,
+          ferryId: ferry.ferryId,
 
-          ferryName: ferry.name,
+          townId: ferry.id,
+
+          townName: ferry.name,
 
           landingIndex: i,
+
+          landingId: landing.id,
 
           from: {
             x: toX,

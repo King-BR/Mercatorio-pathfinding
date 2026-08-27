@@ -33,9 +33,6 @@ for (const file of areaFiles) {
 
     if (debug) console.log(`Loading ${file}: ${cells.length} cells`);
 
-    // Não usar grid.push(...cells)
-    // porque arquivos grandes podem estourar o limite
-    // de argumentos do JavaScript.
     for (const cell of cells) {
       grid.push(cell);
     }

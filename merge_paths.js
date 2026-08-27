@@ -1,5 +1,6 @@
 const fs = require("fs");
 const pathsystem = require("path");
+const { simplifyPath } = require("./utils.js");
 
 // merge paths from "paths_${season}" while excluding duplicate paths (two-ways)
 const season = "s7";
@@ -55,11 +56,18 @@ function mergePaths() {
       p.path.forEach((step) => {
         delete step.totalMovementCost;
         delete step.totalMoneyCost;
-        delete step.details;
         delete step.data;
         delete step.area;
         delete step.moneyCost;
         if (step.type == "water" || step.type == "land") delete step.type;
+
+        if (step.details) {
+          if (step.details.ferryId) step.ferryId = step.details.ferryId;
+
+          if (step.details.landingId) step.landingId = step.details.landingId;
+        }
+
+        delete step.details;
       });
 
       p.path = p.path.map((step) => {
@@ -94,57 +102,10 @@ function mergePaths() {
   return mergedPaths;
 }
 
-function simplifyPath(path) {
-  if (path.length <= 2) {
-    return path;
-  }
-
-  var firstStep = [path[0][0], path[0][1]];
-
-  if (path[0][3]) firstStep.push(path[0][3]);
-
-  const result = [firstStep];
-
-  let previousDirection = null;
-
-  for (let i = 1; i < path.length; i++) {
-    const previous = path[i - 1];
-    const current = path[i];
-
-    const dx = Math.sign(current[0] - previous[0]);
-    const dy = Math.sign(current[1] - previous[1]);
-
-    const direction = `${dx},${dy}`;
-
-    // Type changed
-    const typeChanged = current[3] !== previous[3];
-
-    // Direction changed (not the first step)
-    const directionChanged =
-      previousDirection !== null && direction !== previousDirection;
-
-    if (typeChanged || directionChanged) {
-      result.push(
-        [previous[0], previous[1]].concat(previous[3] ? [previous[3]] : []),
-      );
-    }
-
-    previousDirection = direction;
-  }
-
-  // Always include the last step
-  const lastStep = path[path.length - 1];
-  result.push(
-    [lastStep[0], lastStep[1]].concat(lastStep[3] ? [lastStep[3]] : []),
-  );
-
-  return result;
-}
-
 const mergedPaths = mergePaths();
 const outputFilePath = pathsystem.join(
   __dirname,
-  `merged_${process.argv.includes("--simplify") ? "simplified_" : ""}paths_${season}.json`,
+  `output/merged_${process.argv.includes("--simplify") ? "simplified_" : ""}paths_${season}.json`,
 );
 
 fs.writeFileSync(outputFilePath, JSON.stringify(mergedPaths));
@@ -155,7 +116,7 @@ if (process.argv.includes("--debug")) {
   var debugPaths = [];
   var debugOutputFilePath = pathsystem.join(
     __dirname,
-    `debug_merged_${process.argv.includes("--simplify") ? "simplified_" : ""}paths_${season}.json`,
+    `debug/debug_merged_${process.argv.includes("--simplify") ? "simplified_" : ""}paths_${season}.json`,
   );
 
   debugPaths.push(mergedPaths.find((p) => p.isWaterPath));

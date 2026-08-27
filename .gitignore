@@ -1,11 +1,12 @@
 areas_s7/
 paths_s7/
+tmp_paths_s7/
 node_modules/
 
 areas_s7.zip
-merged_paths_s7.json
-merged_simplified_paths_s7.json
 
-debug_merged_simplified_paths_s7.json
+output/merged_paths_s7.json
+output/merged_simplified_paths_s7.json
 
-debug_merged_paths_s7.json
+debug/debug_merged_paths_s7.json
+debug/debug_merged_simplified_paths_s7.json
