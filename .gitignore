@@ -1,15 +1,13 @@
+node_modules/
+
 areas_s5/
 areas_s7/
 areas_s8/
 paths_s5/
 paths_s7/
 paths_s8/
-node_modules/
+
+output/
+debug/
 
 areas_s7.zip
-
-output/merged_paths_s7.json
-output/merged_simplified_paths_s7.json
-
-debug/debug_merged_paths_s7.json
-debug/debug_merged_simplified_paths_s7.json
