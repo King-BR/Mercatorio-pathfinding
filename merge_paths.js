@@ -38,7 +38,6 @@ function mergePaths() {
     for (const p of paths) {
       // add path ID to use in the interactive map for getting full data from backend
       p.id = pathsCount;
-
       pathsCount++;
 
       if (process.argv.includes("--debug"))
@@ -62,9 +61,14 @@ function mergePaths() {
         if (step.type == "water" || step.type == "land") delete step.type;
 
         if (step.details) {
-          if (step.details.ferryId) step.ferryId = step.details.ferryId;
+          if (step.details.ferryId != undefined)
+            step.ferryId = step.details.ferryId;
 
-          if (step.details.landingId) step.landingId = step.details.landingId;
+          if (step.details.landingId != undefined) {
+            step.landingId = step.details.landingId;
+          } else if (step.details.landingIndex != undefined) {
+            step.landingId = step.details.landingIndex;
+          }
         }
 
         delete step.details;
@@ -72,7 +76,9 @@ function mergePaths() {
 
       p.path = p.path.map((step) => {
         return [step.x, step.y, step.moveCost].concat(
-          step.type ? [step.type] : [],
+          step.type
+            ? [step.type, step.ferryId, step.landingId]
+            : [],
         );
       });
 
