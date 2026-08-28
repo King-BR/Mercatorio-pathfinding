@@ -1,13 +1,13 @@
 const fs = require("fs");
 const path = require("path");
 const Pathfinder = require("./pathfinding.js");
-const { simplifyPath } = require("./utils.js");
 
-const townStats = require("./data/stats_s7.json");
+const season = "s8";
 
-const AREAS_DIR = "./areas_s7";
-const FERRIES_FILE = "./data/ferries_s7.json";
-const OUTPUT_FILE = "./data/ferries_s7.json";
+const townStats = require(`./data/stats_${season}.json`);
+const AREAS_DIR = `./areas_${season}`;
+const FERRIES_FILE = `./data/ferries_${season}.json`;
+const OUTPUT_FILE = `./data/ferries_${season}.json`;
 
 // ---------------------------------------------------------
 // Load ferries

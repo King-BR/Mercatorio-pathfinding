@@ -2,7 +2,7 @@ const fs = require("fs");
 const pathsystem = require("path");
 const Pathfinder = require("./pathfinding.js");
 
-const season = "s7";
+const season = "s8";
 
 // ---------------------------------------------------------
 // Carrega todos os arquivos da pasta areas/

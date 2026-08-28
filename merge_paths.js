@@ -3,7 +3,7 @@ const pathsystem = require("path");
 const { simplifyPath } = require("./utils.js");
 
 // merge paths from "paths_${season}" while excluding duplicate paths (two-ways)
-const season = "s7";
+const season = "s8";
 
 function mergePaths() {
   const mergedPaths = [];
