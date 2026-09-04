@@ -574,7 +574,7 @@ class Pathfinder {
   }
 
   getNeighboringAreas(area) {
-    const neighboringAreas = new Set();
+    var neighboringAreas = new Set();
 
     if (this.areaNeighbors.has(area)) {
       neighboringAreas = this.areaNeighbors.get(area);

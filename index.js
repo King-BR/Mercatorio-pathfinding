@@ -106,32 +106,112 @@ if (!towns || towns.length === 0) {
  * @param {{id: number, name: string, altname: string, area: string, region: string, location: {x: number, y: number}}} town
  * @returns {Array<{from: {id: number, name: string, altname: string, area: string, region: string}, to: {id: number, name: string, altname: string, area: string, region: string}, isWaterPath: boolean, path: { totalMovementCost: number;totalMoneyCost: number;path: {type: string;x: number;y: number;area: number;data: any;totalMovementCost: number;totalMoneyCost: number;moveCost: number;moneyCost: number;details: any;}[];}}>} paths
  */
-function getTownPaths(town) {
+function getTownPaths(town, oldReachableTowns, oldUniqueTowns) {
   const paths = [];
-
-  /*
-  var oldPaths = [];
-  var oldPathsMap = new Map();
-
-  if (fs.existsSync(`./paths_${season}/${town.name}_${town.id}.json`)) {
-    oldPaths = JSON.parse(
-      fs.readFileSync(
-        `./paths_${season}/${town.name}_${town.id}.json`,
-        "utf-8",
-      ),
-    );
-  }
-
-  for (const path of oldPaths) {
-    oldPathsMap.set(`${path.from.id}-${path.to.id}`, path);
-  }
-  */
-
   const { reachableTowns, uniqueTowns } = getReachableTowns(town);
 
   console.log(
     `Found ${uniqueTowns.size} reachable towns (${reachableTowns.size} paths) for ${town.name} (${town.id}).`,
   );
+
+  if (
+    oldReachableTowns &&
+    oldUniqueTowns &&
+    oldReachableTowns.size > 0 &&
+    oldUniqueTowns.size > 0
+  ) {
+    const reachableChanges = compareReachableTowns(
+      oldReachableTowns,
+      reachableTowns,
+    );
+
+    const uniqueChanges = compareUniqueTowns(oldUniqueTowns, uniqueTowns);
+
+    if (!reachableChanges.changed && !uniqueChanges.changed) {
+      console.log(
+        `No changes in reachable towns and unique towns for ${town.name} (${town.id}).`,
+      );
+
+      const paths = JSON.parse(
+        fs.readFileSync(
+          `./paths_${season}/${town.name}_${town.id}.json`,
+          "utf-8",
+        ),
+      );
+
+      return {
+        paths,
+        reachableTowns,
+        uniqueTowns,
+      };
+    }
+
+    // --------------------------------
+    // REACHABLE TOWNS
+    // --------------------------------
+
+    if (reachableChanges.changed) {
+      console.log(
+        `Changes detected in reachable towns for ${town.name} (${town.id}).`,
+      );
+
+      if (debug) {
+        if (!fs.existsSync(`data/changes`)) {
+          fs.mkdirSync(`data/changes`, { recursive: true });
+        }
+
+        fs.writeFileSync(
+          `data/changes/${town.name}_${town.id}_reachable.json`,
+          JSON.stringify(reachableChanges, null, 2),
+        );
+
+        if (reachableChanges.added.length > 0) {
+          console.log("Added reachable towns:", reachableChanges.added);
+        }
+
+        if (reachableChanges.removed.length > 0) {
+          console.log("Removed reachable towns:", reachableChanges.removed);
+        }
+
+        if (reachableChanges.modified.length > 0) {
+          console.log("Modified reachable towns:", reachableChanges.modified);
+        }
+      }
+    }
+
+    // --------------------------------
+    // UNIQUE TOWNS
+    // --------------------------------
+
+    if (uniqueChanges.changed) {
+      console.log(
+        `Changes detected in unique towns for ${town.name} (${town.id}).`,
+      );
+
+      if (debug) {
+        if (!fs.existsSync(`data/changes`)) {
+          fs.mkdirSync(`data/changes`, { recursive: true });
+        }
+
+        fs.writeFileSync(
+          `data/changes/${town.name}_${town.id}_unique.json`,
+          JSON.stringify(uniqueChanges, null, 2),
+        );
+
+        if (uniqueChanges.added.length > 0) {
+          console.log("Added unique towns:", uniqueChanges.added);
+        }
+
+        if (uniqueChanges.removed.length > 0) {
+          console.log("Removed unique towns:", uniqueChanges.removed);
+        }
+      }
+    }
+  } else {
+    console.log(
+      `No old data for ${town.name} (${town.id}). Calculating from scratch.`,
+    );
+  }
 
   reachableTowns.forEach((otherTown) => {
     if (town.id === otherTown.id) return;
@@ -257,10 +337,106 @@ function getReachableTowns(town) {
   return { reachableTowns, uniqueTowns };
 }
 
+function compareReachableTowns(oldTowns, newTowns) {
+  const oldMap = new Map();
+  const newMap = new Map();
+
+  for (const town of oldTowns) {
+    const key = `${town.id}:${town.isWaterPath}`;
+    oldMap.set(key, town);
+  }
+
+  for (const town of newTowns) {
+    const key = `${town.id}:${town.isWaterPath}`;
+    newMap.set(key, town);
+  }
+
+  const added = [];
+  const removed = [];
+  const modified = [];
+
+  // Adicionados ou modificados
+  for (const [key, newTown] of newMap) {
+    const oldTown = oldMap.get(key);
+
+    if (!oldTown) {
+      added.push(newTown);
+      continue;
+    }
+
+    const oldPath = oldTown.areaPath;
+    const newPath = newTown.areaPath;
+
+    const pathChanged =
+      oldPath.length !== newPath.length ||
+      oldPath.some((area, i) => area !== newPath[i]);
+
+    if (pathChanged) {
+      modified.push({
+        id: newTown.id,
+        isWaterPath: newTown.isWaterPath,
+        oldAreaPath: oldPath,
+        newAreaPath: newPath,
+      });
+    }
+  }
+
+  // Removidos
+  for (const [key, oldTown] of oldMap) {
+    if (!newMap.has(key)) {
+      removed.push(oldTown);
+    }
+  }
+
+  return {
+    changed: added.length > 0 || removed.length > 0 || modified.length > 0,
+
+    added,
+    removed,
+    modified,
+  };
+}
+
+function compareUniqueTowns(oldTowns, newTowns) {
+  const added = [];
+  const removed = [];
+
+  for (const id of newTowns) {
+    if (!oldTowns.has(id)) {
+      added.push(id);
+    }
+  }
+
+  for (const id of oldTowns) {
+    if (!newTowns.has(id)) {
+      removed.push(id);
+    }
+  }
+
+  return {
+    changed: added.length > 0 || removed.length > 0,
+    added,
+    removed,
+  };
+}
+
 towns.forEach((town, index) => {
   console.log(
     `\nFinding paths for town ${index + 1}/${towns.length}: ${town.name} (${town.id})`,
   );
+
+  if (!fs.existsSync(pathsystem.join(__dirname, `data/uniqueTowns`)))
+    fs.mkdirSync(pathsystem.join(__dirname, `data/uniqueTowns`), {
+      recursive: true,
+    });
+
+  if (!fs.existsSync(pathsystem.join(__dirname, `data/reachableTowns`)))
+    fs.mkdirSync(pathsystem.join(__dirname, `data/reachableTowns`), {
+      recursive: true,
+    });
+
+  if (!fs.existsSync(pathsystem.join(__dirname, `paths_${season}`)))
+    fs.mkdirSync(pathsystem.join(__dirname, `paths_${season}`));
 
   var oldReachableTowns = new Set();
   var oldUniqueTowns = new Set();
@@ -301,20 +477,15 @@ towns.forEach((town, index) => {
     );
   }
 
+  console.log(
+    `Found ${oldUniqueTowns.size} old reachable towns (${oldReachableTowns.size} paths) for ${town.name} (${town.id}).`,
+  );
+
   var { paths, reachableTowns, uniqueTowns } = getTownPaths(
     town,
     oldReachableTowns,
     oldUniqueTowns,
   );
-
-  if (!fs.existsSync(pathsystem.join(__dirname, `data/uniqueTowns`)))
-    fs.mkdirSync(pathsystem.join(__dirname, `data/uniqueTowns`));
-
-  if (!fs.existsSync(pathsystem.join(__dirname, `data/reachableTowns`)))
-    fs.mkdirSync(pathsystem.join(__dirname, `data/reachableTowns`));
-
-  if (!fs.existsSync(pathsystem.join(__dirname, `paths_${season}`)))
-    fs.mkdirSync(pathsystem.join(__dirname, `paths_${season}`));
 
   const uniqueTownsFile = pathsystem.join(
     __dirname,

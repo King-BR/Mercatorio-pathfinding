@@ -9,6 +9,7 @@ paths_s8/
 
 data/reachableTowns/
 data/uniqueTowns/
+data/changes/
 
 output/
 debug/

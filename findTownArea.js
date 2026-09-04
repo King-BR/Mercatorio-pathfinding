@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const AREAS_DIR = "./areas_s7";
-const TOWNS_FILE = "./towns_s7.json";
-const OUTPUT_FILE = "./towns_s7.json";
+const AREAS_DIR = "./areas_s8";
+const TOWNS_FILE = "./data/towns_s8.json";
+const OUTPUT_FILE = "./data/towns_s8.json";
 
 // ---------------------------------------------------------
 // Load towns
