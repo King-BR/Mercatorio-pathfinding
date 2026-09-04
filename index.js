@@ -109,40 +109,68 @@ if (!towns || towns.length === 0) {
 function getTownPaths(town) {
   const paths = [];
 
-  // Se já existe um arquivo de paths para essa cidade, carrega ele e retorna
-  if (
-    fs.existsSync(
-      pathsystem.join(
-        __dirname,
-        `paths_${season}/${town.name}_${town.id}.json`,
-      ),
-    )
-  ) {
-    const existingPaths = require(
-      pathsystem.join(
-        __dirname,
-        `paths_${season}/${town.name}_${town.id}.json`,
+  /*
+  var oldPaths = [];
+  var oldPathsMap = new Map();
+
+  if (fs.existsSync(`./paths_${season}/${town.name}_${town.id}.json`)) {
+    oldPaths = JSON.parse(
+      fs.readFileSync(
+        `./paths_${season}/${town.name}_${town.id}.json`,
+        "utf-8",
       ),
     );
-    console.log(
-      `Loaded ${existingPaths.length} existing paths for town ${town.name} (${town.id})`,
-    );
-    return existingPaths;
   }
 
+  for (const path of oldPaths) {
+    oldPathsMap.set(`${path.from.id}-${path.to.id}`, path);
+  }
+  */
+
+  const { reachableTowns, uniqueTowns } = getReachableTowns(town);
+
+  console.log(
+    `Found ${uniqueTowns.size} reachable towns (${reachableTowns.size} paths) for ${town.name} (${town.id}).`,
+  );
+
+  reachableTowns.forEach((otherTown) => {
+    if (town.id === otherTown.id) return;
+
+    const path = pf.findPath(otherTown.start, otherTown.goal);
+
+    if (path) {
+      path.isWaterPath = otherTown.isWaterPath;
+      path.from = {
+        id: town.id,
+        name: town.name,
+        altname: town.altname,
+        location: town.location,
+        area: town.area,
+        region: town.region,
+      };
+
+      path.to = {
+        id: otherTown.id,
+        name: otherTown.name,
+        altname: otherTown.altname,
+        location: otherTown.location,
+        area: otherTown.area,
+        region: otherTown.region,
+      };
+
+      paths.push(path);
+    }
+  });
+
+  return { paths, reachableTowns, uniqueTowns };
+}
+
+function getReachableTowns(town) {
+  var reachableTowns = new Set();
+  var uniqueTowns = new Set();
+
   for (const otherTown of towns) {
-    // Pula se for a mesma cidade
     if (town.id === otherTown.id) continue;
-
-    // Pula se já existe um caminho entre as duas cidades
-    var alreadyExists = paths.some((path) => {
-      return (
-        (path.from.id === town.id && path.to.id === otherTown.id) ||
-        (path.from.id === otherTown.id && path.to.id === town.id)
-      );
-    });
-
-    if (alreadyExists) continue;
 
     const start = {
       x: town.location.x,
@@ -154,36 +182,23 @@ function getTownPaths(town) {
       y: otherTown.location.y,
     };
 
-    /*
-     * checa se existe um caminho high-level (somente os nós de areas/ferries, sem calcular o caminho detalhado)
-     * possivel entre as duas cidades
-     */
-    if (pf.reachable(start, goal)) {
-      const path = pf.findPath(start, goal);
+    var areaPath = pf.reachable(start, goal, true) || [];
 
-      if (path) {
-        path.isWaterPath = false;
-        path.from = {
-          id: town.id,
-          name: town.name,
-          altname: town.altname,
-          area: town.area,
-          region: town.region,
-        };
-
-        path.to = {
-          id: otherTown.id,
-          name: otherTown.name,
-          altname: otherTown.altname,
-          area: otherTown.area,
-          region: otherTown.region,
-        };
-
-        paths.push(path);
-      }
+    if (areaPath.length > 0) {
+      uniqueTowns.add(otherTown.id);
+      reachableTowns.add({
+        id: otherTown.id,
+        name: otherTown.name,
+        isWaterPath: false,
+        location: otherTown.location,
+        area: otherTown.area,
+        region: otherTown.region,
+        start,
+        goal,
+        areaPath,
+      });
     }
 
-    // checa se ambas as cidades tem acesso a um oceano/rio/lago navegavel (não são landlocked)
     if (
       !townsStats[town.name].landlocked &&
       !townsStats[otherTown.name].landlocked
@@ -207,58 +222,129 @@ function getTownPaths(town) {
 
       /*
        * Checa se ambas as cidades tem acesso ao mesmo oceano (mesma area navegavel de água)
-       * e se exist um caminho high-level (somente os nós de areas/ferries, sem calcular o caminho detalhado)
-       * possivel entre as duas cidades
        */
       if (
         startWaterTile &&
         goalWaterTile &&
-        pf.reachable(startWaterTile, goalWaterTile)
+        startWaterTile.data.area === goalWaterTile.data.area
       ) {
-        const waterPath = pf.findPath(startWaterTile, goalWaterTile);
+        const startWater = {
+          x: startWaterTile.x,
+          y: startWaterTile.y,
+        };
 
-        if (waterPath) {
-          waterPath.isWaterPath = true;
-          waterPath.from = {
-            id: town.id,
-            name: town.name,
-            altname: town.altname,
-            area: town.area,
-            region: town.region,
-          };
-          waterPath.to = {
-            id: otherTown.id,
-            name: otherTown.name,
-            altname: otherTown.altname,
-            area: otherTown.area,
-            region: otherTown.region,
-          };
+        const goalWater = {
+          x: goalWaterTile.x,
+          y: goalWaterTile.y,
+        };
 
-          paths.push(waterPath);
-        }
+        uniqueTowns.add(otherTown.id);
+        reachableTowns.add({
+          id: otherTown.id,
+          name: otherTown.name,
+          isWaterPath: true,
+          location: otherTown.location,
+          area: otherTown.area,
+          region: otherTown.region,
+          start: startWater,
+          goal: goalWater,
+          areaPath: [startWaterTile.data.area],
+        });
       }
     }
   }
 
-  return paths;
+  return { reachableTowns, uniqueTowns };
 }
 
 towns.forEach((town, index) => {
   console.log(
-    `Finding paths for town ${index + 1}/${towns.length}: ${town.name} (${town.id})`,
+    `\nFinding paths for town ${index + 1}/${towns.length}: ${town.name} (${town.id})`,
   );
 
-  var paths = getTownPaths(town);
+  var oldReachableTowns = new Set();
+  var oldUniqueTowns = new Set();
 
-  paths = paths.filter((path) => path && path.path.length > 0);
+  if (
+    fs.existsSync(
+      pathsystem.join(
+        __dirname,
+        `data/reachableTowns/${town.name}_${town.id}.json`,
+      ),
+    )
+  ) {
+    const oldReachableTownsFile = pathsystem.join(
+      __dirname,
+      `data/reachableTowns/${town.name}_${town.id}.json`,
+    );
+
+    oldReachableTowns = new Set(
+      JSON.parse(fs.readFileSync(oldReachableTownsFile, "utf-8")),
+    );
+  }
+
+  if (
+    fs.existsSync(
+      pathsystem.join(
+        __dirname,
+        `data/uniqueTowns/${town.name}_${town.id}.json`,
+      ),
+    )
+  ) {
+    const oldUniqueTownsFile = pathsystem.join(
+      __dirname,
+      `data/uniqueTowns/${town.name}_${town.id}.json`,
+    );
+
+    oldUniqueTowns = new Set(
+      JSON.parse(fs.readFileSync(oldUniqueTownsFile, "utf-8")),
+    );
+  }
+
+  var { paths, reachableTowns, uniqueTowns } = getTownPaths(
+    town,
+    oldReachableTowns,
+    oldUniqueTowns,
+  );
+
+  if (!fs.existsSync(pathsystem.join(__dirname, `data/uniqueTowns`)))
+    fs.mkdirSync(pathsystem.join(__dirname, `data/uniqueTowns`));
+
+  if (!fs.existsSync(pathsystem.join(__dirname, `data/reachableTowns`)))
+    fs.mkdirSync(pathsystem.join(__dirname, `data/reachableTowns`));
 
   if (!fs.existsSync(pathsystem.join(__dirname, `paths_${season}`)))
     fs.mkdirSync(pathsystem.join(__dirname, `paths_${season}`));
+
+  const uniqueTownsFile = pathsystem.join(
+    __dirname,
+    `data/uniqueTowns/${town.name}_${town.id}.json`,
+  );
+
+  fs.writeFileSync(
+    uniqueTownsFile,
+    JSON.stringify(Array.from(uniqueTowns), null, 2),
+  );
+
+  console.log(`Saved unique towns to ${uniqueTownsFile}`);
+
+  const reachableTownsFile = pathsystem.join(
+    __dirname,
+    `data/reachableTowns/${town.name}_${town.id}.json`,
+  );
+
+  fs.writeFileSync(
+    reachableTownsFile,
+    JSON.stringify(Array.from(reachableTowns), null, 2),
+  );
+
+  console.log(`Saved reachable towns to ${reachableTownsFile}`);
 
   const outputFile = pathsystem.join(
     __dirname,
     `paths_${season}/${town.name}_${town.id}.json`,
   );
+
   fs.writeFileSync(outputFile, JSON.stringify(paths, null, 2));
-  console.log(`Saved paths to ${outputFile}`);
+  console.log(`Saved paths to ${outputFile}\n`);
 });

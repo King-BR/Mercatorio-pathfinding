@@ -7,6 +7,9 @@ paths_s5/
 paths_s7/
 paths_s8/
 
+data/reachableTowns/
+data/uniqueTowns/
+
 output/
 debug/
 

@@ -73,6 +73,15 @@ class Pathfinder {
      */
     this.cells = new Map();
 
+    /*
+     * Vizinhos de cada área navegável
+     *
+     * key = id da área
+     *
+     * value = Set de áreas vizinhas
+     */
+    this.areaNeighbors = new Map();
+
     for (const c of grid) {
       this.cells.set(this.idx(c.x, c.y), c);
     }
@@ -485,11 +494,12 @@ class Pathfinder {
   }
 
   // Checa se é possível ir de uma cidade a outra, considerando somente as áreas e ferries
-  reachable(start, goal) {
+  reachable(start, goal, returnPath = false) {
     const startCell = this.getCell(start.x, start.y);
     const goalCell = this.getCell(goal.x, goal.y);
 
     if (!startCell || !goalCell) {
+      if (returnPath) return [];
       return false;
     }
 
@@ -497,6 +507,7 @@ class Pathfinder {
     const areaGoal = goalCell.data.area || undefined;
 
     if (areaStart === undefined || areaGoal === undefined) {
+      if (returnPath) return [];
       return false;
     }
 
@@ -505,47 +516,85 @@ class Pathfinder {
       goalCell.data.type != null &&
       areaStart !== areaGoal
     ) {
+      if (returnPath) return [];
       return false;
     }
 
     if (areaStart === areaGoal) {
+      if (returnPath) return [areaStart];
       return true;
     }
-
-    // Se as duas cidades estão em áreas diferentes, então checa se existe um ferry ligando as duas areas diretamente ou indiretamente (passando por outras areas)
+    // Se as duas cidades estão em áreas diferentes, verifica se existe
+    // um caminho entre as áreas, direta ou indiretamente.
     const visitedAreas = new Set();
     const areasToVisit = [areaStart];
 
+    // Guarda de qual área viemos para chegar em cada área
+    const parent = new Map();
+    parent.set(areaStart, null);
+
     while (areasToVisit.length > 0) {
       const currentArea = areasToVisit.pop();
+
       visitedAreas.add(currentArea);
 
-      // Check if the current area is connected to the target area
+      // Chegamos à área de destino
       if (currentArea === areaGoal) {
-        return true;
+        if (!returnPath) return true;
+
+        // Reconstrói o caminho
+        const areaPath = [];
+        let area = areaGoal;
+
+        while (area !== null) {
+          areaPath.push(area);
+          area = parent.get(area);
+        }
+
+        // Como reconstruímos do destino para a origem,
+        // precisamos inverter
+        areaPath.reverse();
+
+        return areaPath;
       }
 
-      // Add neighboring areas to the list of areas to visit
+      // Áreas vizinhas
       const neighboringAreas = this.getNeighboringAreas(currentArea);
+
       for (const neighbor of neighboringAreas) {
-        if (!visitedAreas.has(neighbor)) {
+        if (!visitedAreas.has(neighbor) && !parent.has(neighbor)) {
+          parent.set(neighbor, currentArea);
           areasToVisit.push(neighbor);
         }
       }
     }
 
+    if (returnPath) return [];
     return false;
   }
 
   getNeighboringAreas(area) {
     const neighboringAreas = new Set();
 
+    if (this.areaNeighbors.has(area)) {
+      neighboringAreas = this.areaNeighbors.get(area);
+      return neighboringAreas;
+    }
+
     for (const ferry of this.ferryMap.values()) {
       for (const connection of ferry) {
         if (connection.from.area === area) {
           neighboringAreas.add(connection.to.area);
+          if (!this.areaNeighbors.has(connection.from.area)) {
+            this.areaNeighbors.set(connection.from.area, new Set());
+          }
+          this.areaNeighbors.get(connection.from.area).add(connection.to.area);
         } else if (connection.to.area === area) {
           neighboringAreas.add(connection.from.area);
+          if (!this.areaNeighbors.has(connection.to.area)) {
+            this.areaNeighbors.set(connection.to.area, new Set());
+          }
+          this.areaNeighbors.get(connection.to.area).add(connection.from.area);
         }
       }
     }
