@@ -21,7 +21,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node --max-old-space-size=16384 index.js",
-    "test": "node --max-old-space-size=16384 index.js --debug",
+    "continue": "node --max-old-space-size=16384 index.js --continue",
+    "debug": "node --max-old-space-size=16384 index.js --debug",
     "merge": "node --max-old-space-size=16384 merge_paths.js",
     "merge_debug": "node --max-old-space-size=16384 merge_paths.js --debug",
     "merge_simplify": "node --max-old-space-size=16384 merge_paths.js --simplify",

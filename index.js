@@ -107,6 +107,31 @@ if (!towns || towns.length === 0) {
  * @returns {Array<{from: {id: number, name: string, altname: string, area: string, region: string}, to: {id: number, name: string, altname: string, area: string, region: string}, isWaterPath: boolean, path: { totalMovementCost: number;totalMoneyCost: number;path: {type: string;x: number;y: number;area: number;data: any;totalMovementCost: number;totalMoneyCost: number;moveCost: number;moneyCost: number;details: any;}[];}}>} paths
  */
 function getTownPaths(town, oldReachableTowns, oldUniqueTowns) {
+  var oldPaths = [];
+
+  if (
+    oldReachableTowns &&
+    oldUniqueTowns &&
+    oldReachableTowns.size > 0 &&
+    oldUniqueTowns.size > 0 &&
+    process.argv.includes("--continue")
+  ) {
+    oldPaths = JSON.parse(
+      fs.readFileSync(
+        `./paths_${season}/${town.name}_${town.id}.json`,
+        "utf-8",
+      ),
+    );
+
+    console.log(`Loaded previous paths for ${town.name} (${town.id}).`);
+
+    return {
+      paths: oldPaths,
+      reachableTowns: oldReachableTowns,
+      uniqueTowns: oldUniqueTowns,
+    };
+  }
+
   const paths = [];
   const { reachableTowns, uniqueTowns } = getReachableTowns(town);
 
@@ -132,15 +157,8 @@ function getTownPaths(town, oldReachableTowns, oldUniqueTowns) {
         `No changes in reachable towns and unique towns for ${town.name} (${town.id}).`,
       );
 
-      const paths = JSON.parse(
-        fs.readFileSync(
-          `./paths_${season}/${town.name}_${town.id}.json`,
-          "utf-8",
-        ),
-      );
-
       return {
-        paths,
+        paths: oldPaths,
         reachableTowns,
         uniqueTowns,
       };
